@@ -7,7 +7,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/sudhirc/Desktop/Projects/money-os/bin/run-trader.sh</string>
+        <string>/Users/sudhirc/money-os/bin/run-trader.sh</string>
         <string>weekly</string>
     </array>
     <key>StartCalendarInterval</key>
@@ -17,8 +17,8 @@
         <key>Minute</key><integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/sudhirc/Desktop/Projects/money-os/logs/launchd-weekly.log</string>
+    <string>/Users/sudhirc/money-os/logs/launchd-weekly.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/sudhirc/Desktop/Projects/money-os/logs/launchd-weekly.log</string>
+    <string>/Users/sudhirc/money-os/logs/launchd-weekly.log</string>
 </dict>
 </plist>
