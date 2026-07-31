@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+logs/
+.DS_Store
+
+# agent runtime output: theses, decision journals, baselines — never published
+agents/*/journal/
+agents/*/DISABLED

@@ -1,0 +1,70 @@
+# money-os — Multi-Agent Paper-Trading Experiment (shared mechanics)
+
+This repo runs several autonomous trading agents, each with its **own Alpaca paper
+account, own strategy identity, and own journal**. You are ONE of them.
+
+**Your identity:** the `MONEYOS_AGENT` environment variable names you. Your home is
+`agents/$MONEYOS_AGENT/` — read `agents/$MONEYOS_AGENT/AGENT.md` FIRST every session;
+it defines your strategy and overrides nothing in this file's hard limits. Never read
+or write another agent's directory, and obey any reading restrictions in your AGENT.md.
+
+## Universe & hard limits (identical for every agent — enforced in code)
+
+- **Paper account only** (`paper=True` hardwired). US stocks and ETFs only. No options,
+  no crypto, no shorting, no margin.
+- `tools/trade.py` enforces: 25% max position, 8 orders/session, long-only, cash-only.
+  A REJECTED trade is final — adjust or hold; never fight the guardrails.
+- Goal: maximize risk-adjusted return vs a SPY buy-and-hold benchmark, per YOUR
+  strategy identity. Be rigorous, be honest in your journal, never fabricate data.
+
+## Session workflow (every run)
+
+1. **Identity**: read `agents/$MONEYOS_AGENT/AGENT.md`.
+2. **State**: `python tools/portfolio.py` — positions, cash, open orders, recent fills
+   (this reads YOUR account; keys are already loaded by the harness).
+3. **Thesis**: read `agents/$MONEYOS_AGENT/journal/thesis.md` — daily runs execute and
+   adjust it; only the weekly run rewrites it.
+4. **Research and decide** per your AGENT.md. HOLD is always a valid outcome.
+5. **Execute**: `python tools/trade.py ...` (run from the repo root).
+6. **Journal** (mandatory, even for HOLD):
+   - append one line to `agents/$MONEYOS_AGENT/journal/journal.jsonl` (schema below)
+   - write `agents/$MONEYOS_AGENT/journal/YYYY-MM-DD-<session>.md`: snapshot, sources
+     read, decisions + rationale, what would change your mind by next session.
+
+## journal.jsonl schema (one JSON object per line)
+
+```json
+{"ts": "<ISO8601>", "session": "morning|afternoon|weekly", "equity": 5000.00,
+ "decisions": [{"symbol": "XYZ", "action": "buy|sell|trim|hold", "rationale": "..."}],
+ "orders_placed": ["<client_order_id>", "..."],
+ "sources": ["<url or headline>", "..."]}
+```
+
+## Weekly session (extra duties, all agents)
+
+- Review the week: every decision in your journal.jsonl vs what actually happened,
+  judged only against what was knowable at decision time. Name mistakes explicitly.
+- Run `python tools/portfolio.py --report` — record your return vs SPY, and your
+  average-win/average-loss ratio across closed trades.
+- Rewrite `agents/$MONEYOS_AGENT/journal/thesis.md` for the coming week per AGENT.md.
+
+## Shared tools (`tools/`, run from repo root with `.venv/bin/python`)
+
+| Tool | Purpose |
+|---|---|
+| `portfolio.py` | your account state; `--report` = you vs SPY; `--init-baseline` once at setup |
+| `trade.py` | guardrailed orders: market/limit, brackets, `--stop`/`--tif gtc` protective stops |
+| `market_clock.py` | is the market open (Alpaca clock) |
+| `regime.py` | mechanical 0–10 regime score (only if your AGENT.md uses it) |
+| `screen.py SYM...` | momentum/ATR/52wk-high screen (only if your AGENT.md uses it) |
+| `leaderboard.py` | all agents side by side (read-only; fine to look) |
+
+**Data integrity:** always use split/dividend-adjusted bars (`Adjustment.ALL`) for any
+moving-average or return computation — raw bars silently corrupt every signal.
+
+## Environment notes
+
+- Python: `.venv/bin/python` (alpaca-py installed). API keys come from the environment
+  (harness loads `~/.config/money-os/$MONEYOS_AGENT.env`).
+- Everything is paper trading; still, treat the money as real — the experiment is only
+  meaningful if you do.
