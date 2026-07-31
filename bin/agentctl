@@ -1,0 +1,63 @@
+#!/bin/bash
+# agentctl — manage money-os trading agents.
+# Usage:
+#   agentctl status                 # table: agent, enabled, keys, equity
+#   agentctl enable  <agent>        # let the schedule run this agent again
+#   agentctl disable <agent>        # freeze this agent (its account keeps its positions)
+#   agentctl report                 # full leaderboard vs SPY
+#   agentctl run <session> <agent>  # manual one-off run (morning|afternoon|weekly)
+set -u
+
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+CONFIG_DIR="$HOME/.config/money-os"
+CMD="${1:-status}"
+
+require_agent() {
+  local NAME="${1:-}"
+  if [ -z "$NAME" ] || [ ! -d "$REPO/agents/$NAME" ]; then
+    echo "unknown agent '${NAME:-}'. Agents: $(ls "$REPO/agents" | tr '\n' ' ')" >&2
+    exit 1
+  fi
+}
+
+case "$CMD" in
+  enable)
+    require_agent "${2:-}"
+    rm -f "$REPO/agents/$2/DISABLED"
+    echo "$2 enabled — it will run at the next scheduled session"
+    ;;
+  disable)
+    require_agent "${2:-}"
+    touch "$REPO/agents/$2/DISABLED"
+    echo "$2 disabled — the schedule will skip it (positions in its account are untouched)"
+    ;;
+  status)
+    printf "%-12s %-10s %-6s\n" "agent" "state" "keys"
+    printf -- "----------------------------\n"
+    for d in "$REPO"/agents/*/; do
+      NAME="$(basename "$d")"
+      STATE="enabled"; [ -f "$d/DISABLED" ] && STATE="DISABLED"
+      KEYS="no"
+      if [ -f "$CONFIG_DIR/$NAME.env" ] && grep -q 'ALPACA_API_KEY="..*"' "$CONFIG_DIR/$NAME.env" 2>/dev/null; then
+        KEYS="yes"
+      elif [ -f "$CONFIG_DIR/$NAME.env" ] && grep -Eq '^ALPACA_API_KEY=[^"]..*' "$CONFIG_DIR/$NAME.env" 2>/dev/null; then
+        KEYS="yes"
+      fi
+      printf "%-12s %-10s %-6s\n" "$NAME" "$STATE" "$KEYS"
+    done
+    echo
+    echo "(agentctl report for equity + returns; launchctl unload to pause everything)"
+    ;;
+  report)
+    "$REPO/.venv/bin/python" "$REPO/tools/leaderboard.py"
+    ;;
+  run)
+    SESSION="${2:-}"; NAME="${3:-}"
+    require_agent "$NAME"
+    exec bash "$REPO/bin/run-trader.sh" "$SESSION" "$NAME"
+    ;;
+  *)
+    sed -n '2,8p' "$0"
+    exit 2
+    ;;
+esac
