@@ -4,7 +4,10 @@ Read `agents/momentum/AGENT.md`, then follow the "Weekly session" duties in CLAU
 
 1. Retrospective: score the week's decisions from `agents/momentum/journal/journal.jsonl`
    against what was knowable at the time. Did you take every valid signal? Skip any?
-   Rule deviations are the failure mode — name them.
+   Rule deviations are the failure mode — name them. Then **curate
+   `agents/momentum/memory/lessons.md`**: lessons here are about execution fidelity
+   (signal detection quality, stop placement, rule adherence), never new strategy ideas
+   — your strategy is fixed. RETIRE falsified entries, merge overlaps, keep it ≤30.
 2. Benchmark: `python tools/portfolio.py --report` — you vs SPY, avg-win/avg-loss ratio.
 3. Market filter: SPY vs its 200-day SMA (Friday close). Below → defensive mode per
    AGENT.md; above → full playbook.

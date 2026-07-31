@@ -7,4 +7,5 @@ logs/
 
 # agent runtime output: theses, decision journals, baselines — never published
 agents/*/journal/
+agents/*/memory/
 agents/*/DISABLED

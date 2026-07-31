@@ -6,7 +6,9 @@ Read `agents/scholar/AGENT.md`, then follow the "Weekly session" duties in CLAUD
 1. Retrospective: read the whole week of `agents/scholar/journal/journal.jsonl` and
    the daily reports. Score each decision with hindsight — but judge only against what
    was knowable at decision time (no hindsight-import). What did you get right/wrong,
-   and why?
+   and why? Then **curate `agents/scholar/memory/lessons.md`**: promote observations
+   the week's evidence repeated into lessons, mark falsified ones RETIRED (with why),
+   merge overlaps, enforce the ~30-entry cap.
 2. Benchmark: run `python tools/portfolio.py --report`. Record where you stand vs SPY,
    plus average-win/average-loss ratio across closed trades.
 3. **Regime score FIRST (mechanical):** run `python tools/regime.py` and record the

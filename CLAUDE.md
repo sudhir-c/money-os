@@ -19,7 +19,10 @@ or write another agent's directory, and obey any reading restrictions in your AG
 
 ## Session workflow (every run)
 
-1. **Identity**: read `agents/$MONEYOS_AGENT/AGENT.md`.
+1. **Identity + memory**: read `agents/$MONEYOS_AGENT/AGENT.md`, then
+   `agents/$MONEYOS_AGENT/memory/lessons.md` (your accumulated lessons — they apply to
+   every decision today), then `agents/$MONEYOS_AGENT/memory/next-session.md` (the
+   previous session's handoff: open triggers, orders to verify, what to watch first).
 2. **State**: `python tools/portfolio.py` — positions, cash, open orders, recent fills
    (this reads YOUR account; keys are already loaded by the harness).
 3. **Thesis**: read `agents/$MONEYOS_AGENT/journal/thesis.md` — daily runs execute and
@@ -30,6 +33,19 @@ or write another agent's directory, and obey any reading restrictions in your AG
    - append one line to `agents/$MONEYOS_AGENT/journal/journal.jsonl` (schema below)
    - write `agents/$MONEYOS_AGENT/journal/YYYY-MM-DD-<session>.md`: snapshot, sources
      read, decisions + rationale, what would change your mind by next session.
+7. **Memory** (mandatory):
+   - **Rewrite `memory/next-session.md` in full** — the baton for the next run: open
+     orders to verify, pending triggers with exact levels, what to check first. A stale
+     handoff is worse than none.
+   - **Append to `memory/lessons.md` only when a lesson is genuinely earned** — a trade
+     outcome, a caught error, a falsified assumption. Rules: evidence from actual
+     experience, never speculation; record only what was knowable at the time (no
+     hindsight-import); one lesson per insight — revise or merge rather than duplicate.
+     Most sessions earn no lesson; that is normal.
+
+**Memory hygiene:** `lessons.md` is capped at ~30 entries / ~150 lines — the weekly
+session curates it (merge overlaps, mark falsified lessons RETIRED with the reason,
+rank what matters). Your memory is your own: never read another agent's `memory/`.
 
 ## journal.jsonl schema (one JSON object per line)
 

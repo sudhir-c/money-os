@@ -4,7 +4,11 @@ Read `agents/intuition/AGENT.md`, then follow the "Weekly session" duties in CLA
 
 1. Retrospective on the week's calls from `agents/intuition/journal/journal.jsonl` —
    judged only against what was knowable at decision time. Where was your judgment
-   right or wrong, and what does that teach you?
+   right or wrong, and what does that teach you? Then **curate
+   `agents/intuition/memory/lessons.md`** — this matters more for you than anyone:
+   with no rulebook, your accumulated lessons ARE your evolving strategy. Promote what
+   the evidence earned, RETIRE what it falsified (keep the entry, mark it), merge
+   overlaps, keep it ≤30 entries.
 2. Benchmark: `python tools/portfolio.py --report` — you vs SPY.
 3. Research the coming week however you see fit (macro calendar, news, prices).
    You must NOT read the `strategies/` directory.

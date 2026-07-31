@@ -45,6 +45,8 @@ monitor and execute.
 ```
 CLAUDE.md            shared mechanics every agent loads (workflow, journal schema, hard limits)
 agents/<name>/       AGENT.md (strategy identity) + prompts/ (per-session instructions)
+                     + memory/ (persistent per-agent memory: durable lessons.md curated
+                     weekly, next-session.md handoff rewritten every run — content local)
 strategies/          evidence-graded research library (8 reports; see strategies/README.md)
 tools/               guardrailed Alpaca access: trade, portfolio, market clock,
                      regime score, momentum screen, dual-momentum sleeve, leaderboard
