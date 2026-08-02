@@ -15,9 +15,11 @@ esac
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG_DIR="$HOME/.config/money-os"
-# Trade/weekly sessions get 20 min per agent; read-only intel sessions get 12.
+# Watchdog per session type: quick intel gets 12 min, trade/weekly 20,
+# saturday deep-research 30 (it is designed to be the longest window).
 case "$SESSION" in
-  premarket|evening|saturday) TIMEOUT_SECS=720 ;;
+  premarket|evening) TIMEOUT_SECS=720 ;;
+  saturday) TIMEOUT_SECS=1800 ;;
   *) TIMEOUT_SECS=1200 ;;
 esac
 
