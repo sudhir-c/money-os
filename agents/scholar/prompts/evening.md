@@ -10,3 +10,6 @@ Read `agents/scholar/AGENT.md` and follow the CLAUDE.md workflow. Focus:
   thesis (only the weekly session does that).
 - Update `memory/watchlist.md` and rewrite `memory/next-session.md` for tomorrow's
   7:45 premarket sweep: what to check first, exact levels that matter overnight.
+
+Also review `memory/triggers.json`: are the sentinel triggers still the right levels
+after today's action? Stale triggers fire wrong emergencies — prune and re-arm.

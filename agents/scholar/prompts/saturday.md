@@ -20,3 +20,7 @@ Read `agents/scholar/AGENT.md` and follow the CLAUDE.md workflow. Two jobs:
 
 Journal the session; rewrite `memory/next-session.md` pointing the Sunday weekly
 session at what deserves its attention.
+
+Quantify before you propose: `python tools/backtest.py` (built-ins + custom specs,
+out-of-sample split enforced). An idea with VALIDATE-period numbers outranks an
+argument; an idea that only shines in TRAIN is noise and should say so.

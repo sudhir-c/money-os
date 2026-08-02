@@ -18,3 +18,7 @@ Read `agents/intuition/AGENT.md` and follow the CLAUDE.md workflow. Two jobs:
    session — daily sessions execute doctrine, they don't improvise it.
 
 Journal; rewrite `memory/next-session.md` pointing Sunday's weekly at what matters.
+
+Quantify before you propose: `python tools/backtest.py` (built-ins + custom specs,
+out-of-sample split enforced). An idea with VALIDATE-period numbers outranks an
+argument; an idea that only shines in TRAIN is noise and should say so.

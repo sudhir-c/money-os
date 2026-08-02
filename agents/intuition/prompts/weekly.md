@@ -16,3 +16,7 @@ Read `agents/intuition/AGENT.md`, then follow the "Weekly session" duties in CLA
    in whatever structure you find natural. Be concrete enough that the daily sessions
    can act on it.
 5. Journal the session in journal.jsonl and `agents/intuition/journal/YYYY-MM-DD-weekly.md`.
+
+Quantitative duties: `python tools/tca.py report` (execution quality, per-rule P&L)
+and `python tools/risk.py` (exposure, correlations, gap budget, breaker tier) — cite
+both in the retrospective and thesis.

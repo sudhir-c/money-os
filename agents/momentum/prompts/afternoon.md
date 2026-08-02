@@ -11,3 +11,7 @@ Afternoon-specific focus:
 - Re-price or cancel any DAY orders expiring at the close.
 
 No dip-buying, no news trades, no exceptions. Journal either way.
+
+Standard trade-window duties: run `python tools/orders.py reconcile` (fix anything it
+flags before new entries); keep `memory/triggers.json` current — exact sentinel
+trigger levels for everything you'd want to know about before the next session.

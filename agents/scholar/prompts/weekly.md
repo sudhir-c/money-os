@@ -24,3 +24,7 @@ Read `agents/scholar/AGENT.md`, then follow the "Weekly session" duties in CLAUD
    budget → core sleeve plan → satellite candidates with conditional entry rules →
    exit rules for every current holding. Every element cites its strategy file.
 6. Journal the session in journal.jsonl and `agents/scholar/journal/YYYY-MM-DD-weekly.md`.
+
+Quantitative duties: `python tools/tca.py report` (execution quality, per-rule P&L)
+and `python tools/risk.py` (exposure, correlations, gap budget, breaker tier) — cite
+both in the retrospective and thesis.

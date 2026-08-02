@@ -12,3 +12,7 @@ Morning-specific focus:
 - Set protective exits (bracket/stop) on new positions.
 
 Remember: HOLD is a valid outcome. Journal your decisions either way.
+
+Standard trade-window duties: run `python tools/orders.py reconcile` (fix anything it
+flags before new entries); keep `memory/triggers.json` current — exact sentinel
+trigger levels for everything you'd want to know about before the next session.

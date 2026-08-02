@@ -20,3 +20,7 @@ Read `agents/momentum/AGENT.md`, then follow the "Weekly session" duties in CLAU
 6. Rewrite `agents/momentum/journal/thesis.md`: market-filter state → sleeve plan →
    watchlist with exact trigger conditions → exit levels for every holding.
 7. Journal the session in journal.jsonl and `agents/momentum/journal/YYYY-MM-DD-weekly.md`.
+
+Quantitative duties: `python tools/tca.py report` (execution quality, per-rule P&L)
+and `python tools/risk.py` (exposure, correlations, gap budget, breaker tier) — cite
+both in the retrospective and thesis.

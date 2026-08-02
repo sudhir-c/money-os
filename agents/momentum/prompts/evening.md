@@ -11,3 +11,6 @@ Read `agents/momentum/AGENT.md` and follow the CLAUDE.md workflow. Focus:
   trend-template qualifiers from today's action.
 - Rewrite `memory/next-session.md` for tomorrow: exact orders to place at 9:45 (with
   levels), stops to verify, entries invalidated today.
+
+Also review `memory/triggers.json`: are the sentinel triggers still the right levels
+after today's action? Stale triggers fire wrong emergencies — prune and re-arm.

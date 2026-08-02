@@ -18,3 +18,7 @@ Read `agents/momentum/AGENT.md` and follow the CLAUDE.md workflow. Two jobs:
    trades. ADOPTED status can only be granted by the Sunday weekly session.
 
 Journal; rewrite `memory/next-session.md` pointing Sunday's weekly at the findings.
+
+Quantify before you propose: `python tools/backtest.py` (built-ins + custom specs,
+out-of-sample split enforced). An idea with VALIDATE-period numbers outranks an
+argument; an idea that only shines in TRAIN is noise and should say so.

@@ -79,15 +79,25 @@ rank what matters). Your memory is your own: never read another agent's `memory/
 
 | Tool | Purpose |
 |---|---|
+| `data.py` | **the single source of price truth**: `snapshot`/`bars`/`quote` (live NBBO), `earnings` registry (IR-verified vs UNCONFIRMED), `fred` |
 | `portfolio.py` | your account state; `--report` = you vs SPY; `--init-baseline` once at setup |
-| `trade.py` | guardrailed orders: market/limit, brackets, `--stop`/`--tif gtc` protective stops |
+| `trade.py` | guardrailed orders. Buys REQUIRE `--reason '<strategy rule>'`. Prefer `--marketable` (prices off live NBBO). Liquidity guard + drawdown circuit breaker enforced here |
+| `orders.py` | `list` / `cancel` / **`reconcile`** — run reconcile at every trade window; every position must have a resting protective stop |
+| `tca.py report` | execution quality, round trips, per-rule P&L attribution (weekly duty) |
+| `risk.py` | exposure, correlations, gap-risk budget, circuit-breaker tier (weekly duty) |
+| `backtest.py` | daily-bar backtests with mandatory out-of-sample split (saturday tool) |
 | `market_clock.py` | is the market open (Alpaca clock) |
-| `regime.py` | mechanical 0–10 regime score (only if your AGENT.md uses it) |
-| `screen.py SYM...` | momentum/ATR/52wk-high screen (only if your AGENT.md uses it) |
-| `leaderboard.py` | all agents side by side (read-only; fine to look) |
+| `regime.py` / `screen.py` | regime score / momentum screen (only if your AGENT.md uses them) |
+| `leaderboard.py` / `stats.py` | all agents side by side (read-only; fine to look) |
 
-**Data integrity:** always use split/dividend-adjusted bars (`Adjustment.ALL`) for any
-moving-average or return computation — raw bars silently corrupt every signal.
+**Data integrity:** price every decision from `data.py` (bars are force-adjusted;
+quotes are live NBBO) — never from an article, a memory, or a hand-rolled API call.
+
+**Pre-committed triggers (`memory/triggers.json`):** the sentinel watches the market
+every 10 minutes and fires a scoped emergency session when one of YOUR triggers hits
+(schema documented in tools/sentinel.py). Trade windows and the evening session must
+keep this file current: exact levels, notes, expiries. A trigger you didn't write
+can't protect you between sessions.
 
 ## Environment notes
 

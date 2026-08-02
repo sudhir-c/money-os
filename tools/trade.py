@@ -111,6 +111,19 @@ def check_buy_size(client: TradingClient, symbol: str, order_value: float) -> No
     acct = client.get_account()
     equity = float(acct.equity)
     cash = float(acct.cash)
+    # Drawdown circuit breaker (Rulebook rules 16-19) — enforced in code via risk.py
+    try:
+        import risk
+        allowed, msg = risk.check_entry_allowed(
+            os.environ.get("MONEYOS_AGENT", "scholar"), equity, symbol)
+        if not allowed:
+            die(msg)
+        if msg:
+            print(f"note: {msg}")
+    except SystemExit:
+        raise
+    except Exception as e:
+        print(f"warning: circuit-breaker check unavailable ({e})", file=sys.stderr)
     if order_value > cash:
         die(f"insufficient cash: order ${order_value:,.2f} > cash ${cash:,.2f} (no margin)")
     existing = 0.0
@@ -186,7 +199,10 @@ def main() -> None:
         from alpaca.data.requests import StockLatestQuoteRequest
         q = StockHistoricalDataClient(key, secret).get_stock_latest_quote(
             StockLatestQuoteRequest(symbol_or_symbols=symbol))[symbol]
-        if q.bid_price and q.ask_price:
+        # only trust a FRESH quote — a stale closed-market NBBO is garbage
+        # (wide/crossed) and must drive neither the guard nor marketable pricing
+        age = (datetime.now(timezone.utc) - q.timestamp).total_seconds()
+        if q.bid_price and q.ask_price and age < 600:
             bid, ask = float(q.bid_price), float(q.ask_price)
     except Exception:
         pass  # market closed / no quote: guard and marketable degrade below

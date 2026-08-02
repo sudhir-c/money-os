@@ -7,3 +7,6 @@ whether today's action confirms or erodes your thesis. Be honest about erosion â
 it tonight is cheaper than rationalizing it tomorrow. Update `memory/watchlist.md`,
 and rewrite `memory/next-session.md` for tomorrow's premarket: what to check first,
 levels that matter overnight, and any trigger you're pre-committing to.
+
+Also review `memory/triggers.json`: are the sentinel triggers still the right levels
+after today's action? Stale triggers fire wrong emergencies â€” prune and re-arm.

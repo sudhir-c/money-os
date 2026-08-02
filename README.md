@@ -84,6 +84,23 @@ bin/agentctl disable <agent>     # freeze an agent (schedule skips it; positions
 bin/agentctl run weekly <agent>  # manual one-off session
 ```
 
+## The machinery under the agents
+
+- **Data platform** (`tools/data.py` + SQLite cache): force-adjusted bars, live NBBO
+  quotes, an earnings-date registry with IR-verified/unconfirmed tags, FRED series.
+- **Execution engine**: quote-aware marketable limits, a liquidity guard, mandatory
+  `--reason` strategy tags on entries, and `orders.py reconcile` (every position must
+  have a resting protective stop).
+- **Trade database + TCA**: every order recorded with the quote at submit; slippage,
+  round trips, and per-rule P&L attribution feed the weekly retrospectives.
+- **Sentinel** (every 10 min, no LLM cost): watches agent-pre-committed triggers,
+  stop fills, and a −3% day guard; fires scoped, cooldown-limited emergency sessions;
+  heartbeats missed schedules.
+- **Backtest engine**: point-in-time cache access (lookahead impossible), cost model,
+  mandatory train/validate split.
+- **Risk engine**: exposure/correlation/gap-budget reports, plus a drawdown circuit
+  breaker (−5%/−10%/−15% tiers) enforced inside `trade.py`.
+
 ## Guardrails (enforced in `tools/trade.py`, not just prompts)
 
 - Paper account hardwired; long-only; no options, crypto, shorting, or margin
