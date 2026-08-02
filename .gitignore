@@ -9,3 +9,7 @@ logs/
 agents/*/journal/
 agents/*/memory/
 agents/*/DISABLED
+
+# market data cache + runtime state (universe.txt stays tracked)
+data/*
+!data/universe.txt

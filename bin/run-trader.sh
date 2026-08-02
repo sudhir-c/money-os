@@ -30,6 +30,15 @@ mkdir -p "$REPO/logs"
 cd "$REPO"
 PY="$REPO/.venv/bin/python"
 
+# Refresh the shared market-data cache once per invocation (cheap, incremental)
+# so every agent in this run reads the same fresh bars. Uses the first agent's
+# keys found; failures are non-fatal (agents can still run on yesterday's cache).
+for _env in "$CONFIG_DIR"/*.env; do
+  [ -f "$_env" ] || continue
+  ( source "$_env" && export ALPACA_API_KEY ALPACA_SECRET_KEY && \
+    "$PY" tools/data.py refresh >>"$REPO/logs/data-refresh.log" 2>&1 ) && break
+done
+
 run_agent() {
   local NAME="$1"
   local LOG="$REPO/logs/$(date +%F)-$SESSION-$NAME.log"
