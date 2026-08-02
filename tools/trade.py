@@ -141,6 +141,14 @@ def main() -> None:
     ap.add_argument("--tif", choices=["day", "gtc"], default="day",
                     help="time in force; gtc keeps protective exits alive overnight "
                          "(gtc requires whole-share --qty)")
+    ap.add_argument("--marketable", action="store_true",
+                    help="price a limit from the live NBBO: buy at ask+max(2c,5bps), "
+                         "sell at bid-max(2c,5bps) — the execution.md default")
+    ap.add_argument("--reason", default="",
+                    help="strategy rule this order executes (e.g. 'momentum-trend.md s2 sleeve'); "
+                         "required for buys, recorded in the trade database")
+    ap.add_argument("--liquidity-note", default="",
+                    help="override the liquidity guard (spread>20bps or px<$5) with a logged reason")
     args = ap.parse_args()
 
     check_trading_session()
@@ -150,6 +158,40 @@ def main() -> None:
     client = TradingClient(key, secret, paper=True)  # paper hardwired
 
     check_symbol(client, symbol)
+
+    if args.side == "buy" and not args.reason:
+        die("buys require --reason '<strategy rule>' (recorded for per-rule attribution)")
+
+    # Live NBBO at submit: powers --marketable, the liquidity guard, and slippage capture.
+    bid = ask = None
+    try:
+        from alpaca.data.historical import StockHistoricalDataClient
+        from alpaca.data.requests import StockLatestQuoteRequest
+        q = StockHistoricalDataClient(key, secret).get_stock_latest_quote(
+            StockLatestQuoteRequest(symbol_or_symbols=symbol))[symbol]
+        if q.bid_price and q.ask_price:
+            bid, ask = float(q.bid_price), float(q.ask_price)
+    except Exception:
+        pass  # market closed / no quote: guard and marketable degrade below
+
+    if bid and ask and args.side == "buy":
+        mid = (bid + ask) / 2
+        spread_bps = (ask - bid) / mid * 10000
+        last_px = mid
+        if (spread_bps > 20 or last_px < 5) and not args.liquidity_note:
+            die(f"liquidity guard: spread {spread_bps:.1f}bps / px ${last_px:.2f} "
+                f"(limits: 20bps, $5). Pass --liquidity-note '<reason>' to override.")
+
+    if args.marketable:
+        if args.limit:
+            die("--marketable computes the limit; do not also pass --limit")
+        if not (bid and ask):
+            die("--marketable needs a live NBBO (market closed?); use --limit or plain market")
+        if args.side == "buy":
+            args.limit = round(ask + max(0.02, ask * 0.0005), 2)
+        else:
+            args.limit = round(bid - max(0.02, bid * 0.0005), 2)
+        print(f"marketable limit: {args.limit} (bid {bid} / ask {ask})")
 
     if args.side == "sell":
         held = 0.0
@@ -224,6 +266,15 @@ def main() -> None:
         f"qty={order.qty} notional={order.notional} type={order.type.value} "
         f"status={order.status.value} client_order_id={order.client_order_id}"
     )
+    try:
+        import trades_db
+        trades_db.record_order(
+            order,
+            agent=os.environ.get("MONEYOS_AGENT", "scholar"),
+            session=os.environ.get("MONEYOS_SESSION", "manual"),
+            reason=args.reason, bid=bid, ask=ask)
+    except Exception as e:  # recording must never block a live order
+        print(f"warning: trade-db record failed: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
