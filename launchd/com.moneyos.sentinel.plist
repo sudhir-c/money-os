@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.moneyos.sentinel</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/sudhirc/money-os/.venv/bin/python</string>
+        <string>/Users/sudhirc/money-os/tools/sentinel.py</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>600</integer>
+    <key>WorkingDirectory</key>
+    <string>/Users/sudhirc/money-os/tools</string>
+    <key>StandardOutPath</key>
+    <string>/Users/sudhirc/money-os/logs/launchd-sentinel.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/sudhirc/money-os/logs/launchd-sentinel.log</string>
+</dict>
+</plist>

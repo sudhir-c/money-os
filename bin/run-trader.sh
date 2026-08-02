@@ -9,7 +9,7 @@ set -u
 SESSION="${1:-}"
 ONLY_AGENT="${2:-}"
 case "$SESSION" in
-  premarket|morning|afternoon|evening|saturday|weekly) ;;
+  premarket|morning|afternoon|evening|saturday|weekly|emergency) ;;
   *) echo "usage: run-trader.sh <premarket|morning|afternoon|evening|saturday|weekly> [agent]" >&2; exit 2 ;;
 esac
 
@@ -20,6 +20,7 @@ CONFIG_DIR="$HOME/.config/money-os"
 case "$SESSION" in
   premarket|evening) TIMEOUT_SECS=720 ;;
   saturday) TIMEOUT_SECS=1800 ;;
+  emergency) TIMEOUT_SECS=600 ;;
   *) TIMEOUT_SECS=1200 ;;
 esac
 

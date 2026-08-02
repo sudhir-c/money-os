@@ -44,7 +44,8 @@ MAX_POSITION_PCT = 0.25
 MAX_ORDERS_PER_SESSION = 8
 # Only these session types may place orders. Intel/research sessions (premarket,
 # evening, saturday) are read-only by construction — churn control lives in code.
-TRADING_SESSIONS = {"morning", "afternoon", "weekly", "manual"}
+# "emergency" trades under sentinel scope limits (see check_emergency_scope).
+TRADING_SESSIONS = {"morning", "afternoon", "weekly", "manual", "emergency"}
 
 
 def die(msg: str) -> None:
@@ -58,6 +59,21 @@ def check_trading_session() -> None:
             f"session '{session}' is read-only (intel/research) — no orders. "
             "Write the idea into the watchlist/thesis for the next trade window."
         )
+
+
+def check_emergency_scope(symbol: str, side: str) -> None:
+    """Emergency sessions may only touch the symbols the sentinel scoped them to,
+    and may only BUY if the firing trigger pre-authorized it."""
+    scope = os.environ.get("MONEYOS_EMERGENCY_SCOPE")
+    if os.environ.get("MONEYOS_SESSION") != "emergency":
+        return
+    if scope:
+        allowed = {s.strip().upper() for s in scope.split(",") if s.strip()}
+        if symbol not in allowed:
+            die(f"emergency scope violation: {symbol} not in scope [{scope}]")
+    if side == "buy" and os.environ.get("MONEYOS_EMERGENCY_BUY_OK") != "1":
+        die("emergency sessions are sell/protect-only unless the trigger pre-authorized "
+            "a buy (preauth_buy). Queue the buy idea for the next trade window.")
 
 
 def session_prefix() -> str:
@@ -154,6 +170,7 @@ def main() -> None:
     check_trading_session()
 
     symbol = args.symbol.upper()
+    check_emergency_scope(symbol, args.side)
     key, secret = get_env_keys()
     client = TradingClient(key, secret, paper=True)  # paper hardwired
 
