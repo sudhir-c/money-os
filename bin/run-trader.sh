@@ -9,13 +9,17 @@ set -u
 SESSION="${1:-}"
 ONLY_AGENT="${2:-}"
 case "$SESSION" in
-  morning|afternoon|weekly) ;;
-  *) echo "usage: run-trader.sh <morning|afternoon|weekly> [agent]" >&2; exit 2 ;;
+  premarket|morning|afternoon|evening|saturday|weekly) ;;
+  *) echo "usage: run-trader.sh <premarket|morning|afternoon|evening|saturday|weekly> [agent]" >&2; exit 2 ;;
 esac
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG_DIR="$HOME/.config/money-os"
-TIMEOUT_SECS=1200  # 20 min per agent; 3 agents fit inside a trading window
+# Trade/weekly sessions get 20 min per agent; read-only intel sessions get 12.
+case "$SESSION" in
+  premarket|evening|saturday) TIMEOUT_SECS=720 ;;
+  *) TIMEOUT_SECS=1200 ;;
+esac
 
 # launchd provides a minimal PATH; claude + uv live in ~/.local/bin
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
@@ -50,8 +54,9 @@ run_agent() {
     export MONEYOS_AGENT="$NAME"
     export MONEYOS_SESSION="$SESSION"
 
-    # Market-hours gate (weekly runs while the market is closed by design).
-    if [ "$SESSION" != "weekly" ]; then
+    # Market-hours gate applies only to the trade windows; intel sessions run
+    # regardless of market state (that is their point), weekly runs Sunday.
+    if [ "$SESSION" = "morning" ] || [ "$SESSION" = "afternoon" ]; then
       if ! "$PY" tools/market_clock.py --require-open; then
         echo "market closed — skipping $SESSION session"
         return 0

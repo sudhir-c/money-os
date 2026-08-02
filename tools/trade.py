@@ -42,10 +42,22 @@ from common import get_env_keys
 
 MAX_POSITION_PCT = 0.25
 MAX_ORDERS_PER_SESSION = 8
+# Only these session types may place orders. Intel/research sessions (premarket,
+# evening, saturday) are read-only by construction — churn control lives in code.
+TRADING_SESSIONS = {"morning", "afternoon", "weekly", "manual"}
 
 
 def die(msg: str) -> None:
     sys.exit(f"REJECTED: {msg}")
+
+
+def check_trading_session() -> None:
+    session = os.environ.get("MONEYOS_SESSION", "manual")
+    if session not in TRADING_SESSIONS:
+        die(
+            f"session '{session}' is read-only (intel/research) — no orders. "
+            "Write the idea into the watchlist/thesis for the next trade window."
+        )
 
 
 def session_prefix() -> str:
@@ -130,6 +142,8 @@ def main() -> None:
                     help="time in force; gtc keeps protective exits alive overnight "
                          "(gtc requires whole-share --qty)")
     args = ap.parse_args()
+
+    check_trading_session()
 
     symbol = args.symbol.upper()
     key, secret = get_env_keys()

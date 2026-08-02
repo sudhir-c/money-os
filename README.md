@@ -22,31 +22,34 @@ equity per position, max 8 orders/session, no margin — so strategy is the only
 ## How it works
 
 ```
-launchd (Mon–Fri 9:45 AM & 3:30 PM ET, Sun 6 PM)
-  └─ bin/run-trader.sh <session>          # loops over enabled agents, sequentially
-       ├─ market-hours gate (Alpaca clock; holidays handled)
-       └─ per agent: load its API keys → headless `claude -p` session
-            1. read portfolio state           (tools/portfolio.py)
-            2. read its weekly thesis         (agents/<name>/journal/thesis.md)
-            3. research: web, filings, prices
-            4. decide — HOLD is a first-class outcome
-            5. execute through guardrails     (tools/trade.py)
-            6. journal every decision         (agents/<name>/journal/)
+launchd → bin/run-trader.sh <session>     # loops over enabled agents, sequentially
+  per agent: load its API keys → headless `claude -p` session
+    read memory → portfolio state → thesis → research → decide → execute* → journal → write memory
+    (*orders only in trade windows — tools/trade.py rejects them from intel sessions)
 ```
 
-The two daily sessions sit in the intraday windows the microstructure research favors
-(post-open and power hour); the Sunday session does deep research and writes each
-agent's thesis for the week. Research on LLM trading agents consistently shows daily
-churn destroys returns — so the big decisions happen weekly, and daily runs mostly
-monitor and execute.
+| Session | When | Role | Trades? |
+|---|---|---|---|
+| premarket | Mon–Fri 7:45 AM | overnight/global sweep; arm the trade window | no |
+| morning | Mon–Fri 9:45 AM | trade window (market-gated) | **yes** |
+| afternoon | Mon–Fri 3:30 PM | trade window (market-gated) | **yes** |
+| evening | Mon–Fri 6:30 PM | day digest, after-hours earnings, watchlist upkeep | no |
+| saturday | Sat 10:00 AM | deep research + strategy exploration (scoped per agent identity) | no |
+| weekly | Sun 6:00 PM | retrospective, memory curation, thesis rewrite | plan-only |
+
+The trade windows sit where the microstructure research favors (post-open and power
+hour). Everything else is intelligence-gathering: research on LLM trading agents
+consistently shows more *trading* frequency destroys returns, so the extra sessions
+feed memory — watchlists, handoffs, lessons, strategy R&D — while order placement
+stays confined to the two market windows, enforced in code.
 
 ## Layout
 
 ```
 CLAUDE.md            shared mechanics every agent loads (workflow, journal schema, hard limits)
 agents/<name>/       AGENT.md (strategy identity) + prompts/ (per-session instructions)
-                     + memory/ (persistent per-agent memory: durable lessons.md curated
-                     weekly, next-session.md handoff rewritten every run — content local)
+                     + memory/ (persistent per-agent memory: lessons.md, watchlist.md,
+                     strategy-ideas.md, next-session.md handoff — content stays local)
 strategies/          evidence-graded research library (8 reports; see strategies/README.md)
 tools/               guardrailed Alpaca access: trade, portfolio, market clock,
                      regime score, momentum screen, dual-momentum sleeve, leaderboard
@@ -68,7 +71,7 @@ untracked — each agent writes to `agents/<name>/journal/` locally.
    ALPACA_SECRET_KEY="..."
    ```
 3. Per agent: `MONEYOS_AGENT=<name> .venv/bin/python tools/portfolio.py --init-baseline`
-4. `cp launchd/*.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.moneyos.*.plist`
+4. `cp launchd/*.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.moneyos.*.plist` (6 schedules)
 5. Requires the [Claude Code](https://claude.com/claude-code) CLI (the agents run as
    headless sessions) and a Mac awake at the scheduled times.
 

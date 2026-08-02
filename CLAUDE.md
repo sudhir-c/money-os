@@ -19,10 +19,16 @@ or write another agent's directory, and obey any reading restrictions in your AG
 
 ## Session workflow (every run)
 
+0. **Know your session type** (`MONEYOS_SESSION`):
+   - `morning` / `afternoon` — the only sessions that may place orders.
+   - `premarket` / `evening` / `saturday` — **read-only intelligence sessions**;
+     `trade.py` rejects orders from them. Their product is memory: watchlist updates,
+     handoffs, research. `saturday` additionally does strategy exploration.
+   - `weekly` — thesis rewrite (plan-only by convention).
 1. **Identity + memory**: read `agents/$MONEYOS_AGENT/AGENT.md`, then
    `agents/$MONEYOS_AGENT/memory/lessons.md` (your accumulated lessons — they apply to
-   every decision today), then `agents/$MONEYOS_AGENT/memory/next-session.md` (the
-   previous session's handoff: open triggers, orders to verify, what to watch first).
+   every decision today), then `memory/next-session.md` (the previous session's
+   handoff), then `memory/watchlist.md` (tracked setups/catalysts with levels).
 2. **State**: `python tools/portfolio.py` — positions, cash, open orders, recent fills
    (this reads YOUR account; keys are already loaded by the harness).
 3. **Thesis**: read `agents/$MONEYOS_AGENT/journal/thesis.md` — daily runs execute and
@@ -37,11 +43,16 @@ or write another agent's directory, and obey any reading restrictions in your AG
    - **Rewrite `memory/next-session.md` in full** — the baton for the next run: open
      orders to verify, pending triggers with exact levels, what to check first. A stale
      handoff is worse than none.
+   - **Maintain `memory/watchlist.md`** (intel sessions especially): add/refresh
+     candidates with exact levels and dated catalysts; prune stale entries.
    - **Append to `memory/lessons.md` only when a lesson is genuinely earned** — a trade
      outcome, a caught error, a falsified assumption. Rules: evidence from actual
      experience, never speculation; record only what was knowable at the time (no
      hindsight-import); one lesson per insight — revise or merge rather than duplicate.
      Most sessions earn no lesson; that is normal.
+   - **`memory/strategy-ideas.md`** (saturday writes, weekly adjudicates): explored
+     strategy ideas with status EXPLORING/PROPOSED/ADOPTED/REJECTED(why). Only the
+     weekly session may grant ADOPTED, within your AGENT.md identity rules.
 
 **Memory hygiene:** `lessons.md` is capped at ~30 entries / ~150 lines — the weekly
 session curates it (merge overlaps, mark falsified lessons RETIRED with the reason,
