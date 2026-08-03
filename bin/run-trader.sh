@@ -19,7 +19,7 @@ CONFIG_DIR="$HOME/.config/money-os"
 # saturday deep-research 30 (it is designed to be the longest window).
 case "$SESSION" in
   premarket|evening) TIMEOUT_SECS=720 ;;
-  saturday) TIMEOUT_SECS=1800 ;;
+  saturday|weekly) TIMEOUT_SECS=1800 ;;
   emergency) TIMEOUT_SECS=600 ;;
   *) TIMEOUT_SECS=1200 ;;
 esac
