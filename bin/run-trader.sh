@@ -31,6 +31,20 @@ mkdir -p "$REPO/logs"
 cd "$REPO"
 PY="$REPO/.venv/bin/python"
 
+# Single-instance lock: agent sessions must never run concurrently (they share the
+# data cache, the trade DB, and each agent's memory files). Any second invocation —
+# launchd catch-up on wake, sentinel recovery, a manual run — exits immediately.
+LOCK="$REPO/logs/.session.lock"
+if ! mkdir "$LOCK" 2>/dev/null; then
+  if [ -f "$LOCK/pid" ] && kill -0 "$(cat "$LOCK/pid" 2>/dev/null)" 2>/dev/null; then
+    echo "another session is already running (pid $(cat "$LOCK/pid")) — exiting" >&2
+    exit 0
+  fi
+  rm -rf "$LOCK" && mkdir "$LOCK" 2>/dev/null || { echo "cannot acquire lock" >&2; exit 1; }
+fi
+echo $$ > "$LOCK/pid"
+trap 'rm -rf "$LOCK"' EXIT INT TERM
+
 # Refresh the shared market-data cache once per invocation (cheap, incremental)
 # so every agent in this run reads the same fresh bars. Uses the first agent's
 # keys found; failures are non-fatal (agents can still run on yesterday's cache).
