@@ -35,9 +35,17 @@ STATE_FILE = REPO / "data" / "sentinel-state.json"
 EVENTS_LOG = REPO / "logs" / "sentinel-events.jsonl"
 MAX_EMERGENCIES_PER_DAY = 2
 
-# heartbeat: session -> (weekday-only, expected-by hour:minute ET)
-HEARTBEAT = {"premarket": (True, "08:30"), "morning": (True, "10:30"),
-             "afternoon": (True, "16:15"), "evening": (True, "19:15")}
+# Missed-session detection AND recovery. The Mac sleeping through a launchd slot is
+# the most common real failure; the sentinel runs every 10 min and is the only job
+# reliable enough to fix it. (deadline, recover_until) in local ET.
+# Recovery windows respect what the session is FOR: a trade window is worth running
+# late only while the market is open; intel sessions are useful any time that day.
+HEARTBEAT = {
+    "premarket": {"deadline": "08:15", "recover_until": "09:35"},
+    "morning":   {"deadline": "10:05", "recover_until": "15:00", "needs_market": True},
+    "afternoon": {"deadline": "15:45", "recover_until": "15:58", "needs_market": True},
+    "evening":   {"deadline": "19:00", "recover_until": "23:30"},
+}
 
 
 def parse_env(path: Path) -> dict[str, str]:
@@ -179,28 +187,65 @@ def check_agent(agent: str, env: dict, data_client, now_open: bool, state: dict)
         spawn_emergency(agent, fired_events, state)
 
 
-def heartbeat() -> None:
+def session_running() -> bool:
+    """Is a run-trader.sh session already in flight? Never stack sessions."""
+    try:
+        out = subprocess.run(["pgrep", "-f", "run-trader.sh"], capture_output=True, text=True)
+        return bool(out.stdout.strip())
+    except Exception:
+        return False
+
+
+def heartbeat(market_open: bool) -> None:
+    """Detect missed sessions and RECOVER them (run them late) when still useful."""
     now = datetime.now(timezone.utc).astimezone()
     if now.weekday() >= 5:
         return
     today = now.date().isoformat()
     hm = now.strftime("%H:%M")
-    for session, (_wd, deadline) in HEARTBEAT.items():
-        if hm < deadline:
+    # who SHOULD have run: enabled agents with keys
+    expected = sorted(
+        d.name for d in (REPO / "agents").iterdir()
+        if d.is_dir() and not (d / "DISABLED").exists()
+        and (CONFIG_DIR / f"{d.name}.env").exists())
+
+    for session, cfg in HEARTBEAT.items():
+        if hm < cfg["deadline"]:
             continue
-        logs = list((REPO / "logs").glob(f"{today}-{session}-*.log"))
-        marker = REPO / "data" / f".hb-{today}-{session}"
-        if not logs and not marker.exists():
-            marker.parent.mkdir(exist_ok=True)
-            marker.touch()
-            log_event({"type": "heartbeat_miss", "session": session, "date": today})
-            notify("money-os HEARTBEAT",
-                   f"{session} session missing after {deadline} — check launchd / Mac sleep")
+        # per-agent: a partial run (one agent logged, others not) must still recover
+        missing = [a for a in expected
+                   if not (REPO / "logs" / f"{today}-{session}-{a}.log").exists()]
+        if not missing:
+            continue
+        recoverable = hm <= cfg["recover_until"] and (market_open or not cfg.get("needs_market"))
+        for agent in missing:
+            marker = REPO / "data" / f".hb-{today}-{session}-{agent}"
+            if marker.exists():
+                continue  # already handled this agent/session today
+            if recoverable:
+                if session_running():
+                    break  # try again next tick; never stack sessions
+                marker.touch()
+                subprocess.Popen(
+                    ["/bin/bash", str(REPO / "bin" / "run-trader.sh"), session, agent],
+                    cwd=str(REPO), stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL, start_new_session=True)
+                log_event({"type": "session_recovered", "session": session, "agent": agent,
+                           "date": today,
+                           "detail": f"missed its slot (Mac asleep or launchd failure); "
+                                     f"started late at {hm}"})
+                notify("money-os", f"recovered missed {session} session for {agent}")
+                break  # one at a time; the next tick picks up the rest
+            else:
+                marker.touch()
+                log_event({"type": "heartbeat_miss_unrecoverable", "session": session,
+                           "agent": agent, "date": today,
+                           "detail": f"past recovery window {cfg['recover_until']}"})
+                notify("money-os HEARTBEAT",
+                       f"{agent} missed {session} — past recovery window")
 
 
 def main() -> None:
-    heartbeat()
-
     # find any working key set for clock + quotes
     envs = {}
     for f in sorted(CONFIG_DIR.glob("*.env")):
@@ -213,6 +258,8 @@ def main() -> None:
     clock = TradingClient(first["ALPACA_API_KEY"], first["ALPACA_SECRET_KEY"],
                           paper=True).get_clock()
     data_client = StockHistoricalDataClient(first["ALPACA_API_KEY"], first["ALPACA_SECRET_KEY"])
+
+    heartbeat(clock.is_open)
 
     state = load_state()
     for agent, env in envs.items():
