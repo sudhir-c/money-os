@@ -201,6 +201,11 @@ def heartbeat(market_open: bool) -> None:
     now = datetime.now(timezone.utc).astimezone()
     if now.weekday() >= 5:
         return
+    # A session in flight runs its agents SEQUENTIALLY (up to ~20 min each), so later
+    # agents legitimately have no log yet. Never judge a session as missed mid-run —
+    # that produced false "unrecoverable" alarms on 2026-08-03.
+    if session_running():
+        return
     today = now.date().isoformat()
     hm = now.strftime("%H:%M")
     # who SHOULD have run: enabled agents with keys

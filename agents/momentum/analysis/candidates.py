@@ -189,6 +189,22 @@ def main():
         else:
             entry, i_base = (px, i_pivot) if breakout else (pivot, i_pivot)
         swing_low = min(lo[i_base:])
+        # DEGENERACY GUARD (2026-08-03 evening, lessons.md L6 amendment). "The base from
+        # the pivot bar forward" is only the base when the pivot bar is the base's LEFT
+        # edge — a prior high the name then retraced from. When a name breaks out on two
+        # nearby sessions, pivot20 becomes the FIRST breakout's close, i_pivot lands on
+        # the right edge instead, and the span collapses to a handful of bars. A 2-bar
+        # "base" has a high swing low, so the 2xATR leg wins, the stop tightens, and size
+        # inflates — L6's dangerous direction exactly. Measured on the 2026-08-03 close:
+        # 6 of 11 breakout names had a span <= 5 (NTAP 2 bars -> 3 sh where the real base
+        # from the 7/14 pivot, low 156.26, forces the 10% cap and 2 sh; ROST 3 bars -> 4 sh
+        # vs 1). This FLAGS the condition only and changes no arithmetic: the correct span
+        # derivation needs a judgment call about where a base starts and is referred to
+        # saturday (strategy-ideas.md #10). Until then, a flagged row's stop and size are
+        # NOT usable — re-derive them by hand from the bars (L3).
+        base_span = len(b) - i_base
+        if base_span <= 5:
+            trig.append(f"!BASE-SPAN={base_span}b:stop+size UNSAFE, derive by hand")
         stop = min(entry - 2 * atr, swing_low)          # wider of the two
         stop = max(stop, entry * (1 - MAX_STOP))        # never wider than 10%
         stop_frac = (entry - stop) / entry
@@ -203,7 +219,8 @@ def main():
         out.append(dict(sym=sym, px=px, rs=rs_sym, p90=p90, pivot=pivot, to_piv=to_piv,
                         sma50=sma50, vs50=vs50, off_hi=off_hi, atr=atr, stop=stop,
                         stop_frac=stop_frac, shares=shares, notional=notional,
-                        swing_low=swing_low, trigger=",".join(trig)))
+                        swing_low=swing_low, base_span=base_span,
+                        trigger=",".join(trig)))
     return out
 
 
