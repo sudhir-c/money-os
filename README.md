@@ -75,6 +75,14 @@ untracked — each agent writes to `agents/<name>/journal/` locally.
 5. Requires the [Claude Code](https://claude.com/claude-code) CLI (the agents run as
    headless sessions) and a Mac awake at the scheduled times.
 
+## Phone notifications (iMessage-to-self)
+
+Put your number in `~/.config/money-os/notify.conf` (`IMESSAGE_TO="+1..."`). The Mac
+texts you via Messages.app: a **morning brief** (~7:40 AM, includes an on-battery
+warning), a **close report** (~6:45 PM: day P&L per agent, fills, sessions ran/lost),
+plus event texts for lost trade windows and fired sentinel triggers. First send asks
+for a one-time Messages automation permission. Test: `python tools/notify.py --text hi`.
+
 ## Operations
 
 ```sh

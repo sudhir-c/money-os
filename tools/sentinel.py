@@ -28,7 +28,7 @@ from alpaca.trading.enums import QueryOrderStatus
 from alpaca.trading.requests import GetOrdersRequest
 
 from common import REPO
-from notify import notify
+from notify import notify, send_text
 
 CONFIG_DIR = Path.home() / ".config" / "money-os"
 STATE_FILE = REPO / "data" / "sentinel-state.json"
@@ -83,6 +83,8 @@ def spawn_emergency(agent: str, events: list[dict], state: dict) -> None:
         log_event({"type": "emergency_suppressed", "agent": agent,
                    "reason": f"cooldown ({count} today)", "events": events})
         notify("money-os sentinel", f"{agent}: trigger fired but emergency cooldown reached")
+        send_text(f"[money-os] ⚠ {agent}: trigger fired but emergency COOLDOWN reached — "
+                  f"needs your eyes")
         return
     state["emergencies"][f"{agent}:{today}"] = count + 1
 
@@ -103,6 +105,7 @@ def spawn_emergency(agent: str, events: list[dict], state: dict) -> None:
     log_event({"type": "emergency_spawned", "agent": agent, "scope": scope,
                "buy_ok": buy_ok, "events": events})
     notify("money-os sentinel", f"{agent}: emergency session spawned ({scope})")
+    send_text(f"[money-os] {agent}: trigger fired ({scope}) — emergency session handling it")
 
 
 def check_agent(agent: str, env: dict, data_client, now_open: bool, state: dict) -> None:
@@ -187,6 +190,41 @@ def check_agent(agent: str, env: dict, data_client, now_open: bool, state: dict)
         spawn_emergency(agent, fired_events, state)
 
 
+def once_per_day(tag: str) -> bool:
+    """True the first time today this tag is seen; marker-file backed."""
+    today = datetime.now(timezone.utc).astimezone().date().isoformat()
+    marker = REPO / "data" / f".daily-{tag}-{today}"
+    if marker.exists():
+        return False
+    marker.parent.mkdir(exist_ok=True)
+    marker.touch()
+    return True
+
+
+def phone_reports_and_warnings() -> None:
+    """Morning brief after 07:40, close report after 18:45, battery nag in between."""
+    now = datetime.now(timezone.utc).astimezone()
+    if now.weekday() >= 5:
+        return
+    hm = now.strftime("%H:%M")
+    try:
+        if hm >= "07:40" and hm < "12:00" and once_per_day("brief"):
+            subprocess.run([str(REPO / ".venv" / "bin" / "python"),
+                            str(REPO / "tools" / "daily_report.py"), "--brief"],
+                           timeout=120, cwd=str(REPO / "tools"))
+        if hm >= "18:45" and once_per_day("close"):
+            subprocess.run([str(REPO / ".venv" / "bin" / "python"),
+                            str(REPO / "tools" / "daily_report.py"), "--close"],
+                           timeout=120, cwd=str(REPO / "tools"))
+        if "07:35" <= hm <= "16:00":
+            r = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True, timeout=10)
+            if "Battery Power" in r.stdout and once_per_day("battnag"):
+                send_text("[money-os] ⚠ Mac on battery during market hours — "
+                          "plug in + lid open or sessions will be missed")
+    except Exception as e:
+        log_event({"type": "report_error", "error": str(e)})
+
+
 def session_running() -> bool:
     """Is a run-trader.sh session already in flight? Never stack sessions."""
     try:
@@ -248,9 +286,14 @@ def heartbeat(market_open: bool) -> None:
                            "detail": f"past recovery window {cfg['recover_until']}"})
                 notify("money-os HEARTBEAT",
                        f"{agent} missed {session} — past recovery window")
+                if session in ("morning", "afternoon"):
+                    send_text(f"[money-os] ⚠ {agent} LOST the {session} trade window "
+                              f"(Mac was asleep past recovery cutoff)")
 
 
 def main() -> None:
+    phone_reports_and_warnings()
+
     # find any working key set for clock + quotes
     envs = {}
     for f in sorted(CONFIG_DIR.glob("*.env")):
