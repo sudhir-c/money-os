@@ -46,11 +46,12 @@ def send_text(message: str) -> bool:
         return False
     # escape for AppleScript string literal
     msg = message.replace("\\", "\\\\").replace('"', '\\"')
+    # NB: "buddy" is a reserved Messages class name — never use it as a variable
     script = (
         'tell application "Messages"\n'
         '  set svc to 1st account whose service type = iMessage\n'
-        f'  set buddy to participant "{to}" of svc\n'
-        f'  send "{msg}" to buddy\n'
+        f'  set dest to participant "{to}" of svc\n'
+        f'  send "{msg}" to dest\n'
         'end tell'
     )
     try:
